@@ -1,0 +1,58 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Android build files
+/build/
+/app/build/
+/.gradle/
+/.idea/
+/*.iml
+
+# Sign-in information (NEVER PUSH THIS)
+*.jks
+*.keystore
+
+# Android Studio specific
+.idea/
+*.log
+*.hprof
+
+# OS files
+Thumbs.db
+
+# Gradle files
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin build folders
+.kts.cache/
+.kotlin/
+
+# Generated files
+captures/
+output.json
+
+# Misc
+*.apk
+*.ap_
+*.dex
+
+# Firebase crashlytics
+firebase/*.properties
+
+# Jetpack Compose previews
+.idea/*/navigation.json
