@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.example.equilibrium"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.equilibrium"
         minSdk = 30
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -56,4 +56,10 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    implementation ("androidx.navigation:navigation-compose:2.7.7")
+    implementation ("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("androidx.compose.material:material-icons-extended:<version>")
+    implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation ("com.airbnb.android:lottie-compose:6.3.0")
 }
