@@ -10,7 +10,7 @@ import com.example.equilibrium.domain.repository.PreferencesRepository
 import com.example.equilibrium.ui.screens.Chart
 import com.example.equilibrium.ui.screens.Energy
 import com.example.equilibrium.ui.screens.Splash
-import com.example.equilibrium.ui.screens.Home
+import com.example.equilibrium.ui.screens.HomeScreen
 import com.example.equilibrium.ui.screens.Onboard
 import com.example.equilibrium.ui.screens.Schedule
 import com.example.equilibrium.ui.screens.User
@@ -50,7 +50,7 @@ fun NavGraph(navController: NavHostController) {
 
         // Bottom navigation tabs
         composable(Screens.Home.route) {
-            Home(navController = navController)
+            HomeScreen(navController = navController)
         }
         composable(Screens.Goals.route) {
             // TODO: Replace with actual GoalsScreen()
