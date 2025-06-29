@@ -1,0 +1,54 @@
+# Gradle
+.gradle/
+build/
+!*/src/main/**/build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log/OS generated files
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (if not using version control for this)
+app/google-services.json
+
+# Generated files
+app/build/
+app/src/*/build/
+
+# Kotlin/Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Others
+.cxx/
+.ksp/
+.kapt/
+
+# Ignore crashlytics and fabric generated files
+crashlytics-build.properties
+fabric.properties
+
+# Ignore test reports
+/test-output/
+/reports/
+
+# Ignore APKs
+*.apk
+*.ap_
