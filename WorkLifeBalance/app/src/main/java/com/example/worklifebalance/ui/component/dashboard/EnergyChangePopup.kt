@@ -39,9 +39,9 @@ fun EnergyChangePopup(energy: Int) {
                     .clip(CircleShape)
                     .background(
                         when {
-                            energy < 30 -> LightPurple
-                            energy < 70 -> LightGreen
-                            else -> LightBlue
+                            energy < 30 -> LightRed
+                            energy < 70 -> LightYellow
+                            else -> LightGreen
                         }
                     ),
                 contentAlignment = Alignment.Center
@@ -54,9 +54,9 @@ fun EnergyChangePopup(energy: Int) {
                     },
                     contentDescription = null,
                     tint = when {
-                        energy < 30 -> PastelPurple
-                        energy < 70 -> PastelGreen
-                        else -> PastelBlue
+                        energy < 30 -> PastelRed
+                        energy < 70 -> PastelYellow
+                        else -> PastelGreen
                     },
                     modifier = Modifier.size(28.dp)
                 )

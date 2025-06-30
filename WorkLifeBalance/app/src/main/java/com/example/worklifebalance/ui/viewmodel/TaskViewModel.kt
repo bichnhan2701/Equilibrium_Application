@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.worklifebalance.domain.model.Task
 import com.example.worklifebalance.domain.usecase.task.DeleteAllTasksUseCase
 import com.example.worklifebalance.domain.usecase.task.DeleteTaskUseCase
+import com.example.worklifebalance.domain.usecase.task.DeleteTasksByGoalIdUseCase
+import com.example.worklifebalance.domain.usecase.task.DeleteTasksByDomainIdUseCase
 import com.example.worklifebalance.domain.usecase.task.GetAllTasksUseCase
 import com.example.worklifebalance.domain.usecase.task.GetTaskByIdUseCase
 import com.example.worklifebalance.domain.usecase.task.GetTasksByGoalIdUseCase
@@ -25,7 +27,9 @@ class TaskViewModel @Inject constructor(
     private val insertTaskUseCase: InsertTaskUseCase,
     private val updateTaskUseCase: UpdateTaskUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
-    private val deleteAllTasksUseCase: DeleteAllTasksUseCase
+    private val deleteAllTasksUseCase: DeleteAllTasksUseCase,
+    private val deleteTasksByGoalIdUseCase: DeleteTasksByGoalIdUseCase,
+    private val deleteTasksByDomainIdUseCase: DeleteTasksByDomainIdUseCase
 ) : ViewModel() {
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks.asStateFlow()
@@ -124,5 +128,26 @@ class TaskViewModel @Inject constructor(
             }
         }
     }
-}
 
+    fun deleteTasksByGoalId(goalId: String) {
+        viewModelScope.launch {
+            try {
+                deleteTasksByGoalIdUseCase(goalId)
+                loadTasks()
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    fun deleteTasksByDomainId(domainId: String) {
+        viewModelScope.launch {
+            try {
+                deleteTasksByDomainIdUseCase(domainId)
+                loadTasks()
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+}

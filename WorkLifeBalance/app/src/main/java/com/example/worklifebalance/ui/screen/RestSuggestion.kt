@@ -14,19 +14,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.worklifebalance.domain.model.RecoveryActivity
-import com.example.worklifebalance.domain.model.RestEvent
-import com.example.worklifebalance.domain.model.Task
 import com.example.worklifebalance.domain.model.sampleRecoveryActivities
 import com.example.worklifebalance.domain.utils.getCurrentDate
+import com.example.worklifebalance.ui.component.common.EmptyPlaceholder
 import com.example.worklifebalance.ui.component.restsuggestion.*
-import com.example.worklifebalance.ui.viewmodel.EnergyViewModel
-import com.example.worklifebalance.ui.viewmodel.RestSessionViewModel
-import com.example.worklifebalance.ui.viewmodel.TaskViewModel
+import com.example.worklifebalance.ui.viewmodel.*
 import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -38,19 +36,25 @@ fun RestSuggestion(
     restSessionViewModel: RestSessionViewModel = hiltViewModel(),
     taskViewModel: TaskViewModel = hiltViewModel(),
     energyViewModel: EnergyViewModel = hiltViewModel(),
+    recoveryActivityViewModel: RecoveryActivityViewModel = hiltViewModel()
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var showReminderToast by remember { mutableStateOf(true) }
-    // Thêm biến lưu thời gian bắt đầu nghỉ
+    var showReminderToast by remember { mutableStateOf(false) }
     var restStartTime by remember { mutableStateOf<Long?>(null) }
-    var showRecoveryCard by remember { mutableStateOf(false) }
-    var showRelaxTaskCard by remember { mutableStateOf(false) }
-    var showCompletionMessage by remember { mutableStateOf(false) }
     var remainingTimeInSeconds by remember { mutableIntStateOf(300) }
+
+    var showRecoveryCard by remember { mutableStateOf(false) }
+    var showCompletionMessage by remember { mutableStateOf(false) }
     var showRecoveryCountdownTimer by remember { mutableStateOf(false) }
     var showRelaxCountdownTimer by remember { mutableStateOf(false) }
+
     var isTimerRunning by remember { mutableStateOf(false) }
-    var relaxTotalTimeInSeconds by remember { mutableIntStateOf(300) } // Thời gian thư giãn nhập từ RelaxTaskDetailCard
+
+    // Biến trạng thái cho ReminderTimeDialog
+    var showReminderTimeDialog by remember { mutableStateOf(false) }
+
+    // State to trigger reload of reminder times
+    var reminderTimesReloadKey by remember { mutableStateOf(0) }
 
     // Effect to handle timer countdown for recovery activity
     LaunchedEffect(isTimerRunning, remainingTimeInSeconds, showRecoveryCountdownTimer) {
@@ -81,37 +85,20 @@ fun RestSuggestion(
 
     val restHistory by restSessionViewModel.restHistory.collectAsState()
     val currentEnergy = energyViewModel.latestEnergy.collectAsState().value?.energy ?: 75
+    val userRecoveryActivities = recoveryActivityViewModel.recoveryActivities.collectAsState().value
     val recoveryActivities = sampleRecoveryActivities
     var selectedActivity by remember { mutableStateOf<RecoveryActivity?>(null) }
 
-    val tasks by taskViewModel.tasks.collectAsState()
-    var selectedRelaxTask by remember { mutableStateOf<Task?>(null) }// Relax activities
-    val relaxActivities = tasks.filter { it.difficulty == com.example.worklifebalance.domain.model.TaskDifficulty.RELAX.name }
-
-    // restEvents lấy từ relaxActivities, sắp xếp theo plannedTime tăng dần (ví dụ: 7:00, 9:00, 12:30...)
-    val restEvents = relaxActivities
-        .sortedBy {
-            try {
-                LocalTime.parse(it.plannedTime)
-            } catch (e: Exception) {
-                LocalTime.MAX
-            }
-        }
-        .map { task ->
-            RestEvent(
-                time = task.plannedTime,
-                activityName = task.name
-            )
-        }
-
     // Lấy tổng thời gian nghỉ hôm nay
+    val today = java.time.LocalDate.now()
     val todaySessions = restHistory.flatMap { it.restSessions }
-        .filter { it.time.toSecondOfDay() >= LocalTime.MIN.toSecondOfDay() && it.time.toSecondOfDay() <= LocalTime.MAX.toSecondOfDay() }
+        .filter { it.dateTime.toLocalDate() == today }
     val totalRestToday = todaySessions.sumOf { it.durationMinutes }
-    // Lấy lần nghỉ gần nhất hôm nay
-    val lastRest = todaySessions.maxByOrNull { it.time }?.time
-    val lastRestDisplay = lastRest?.let {
-        val now = LocalTime.now()
+    // Lấy lần nghỉ gần nhất (dùng full date-time)
+    val allSessions = restHistory.flatMap { it.restSessions }
+    val lastRestDateTime = allSessions.maxByOrNull { it.dateTime }?.dateTime
+    val lastRestDisplay = lastRestDateTime?.let {
+        val now = java.time.LocalDateTime.now()
         val duration = java.time.Duration.between(it, now)
         when {
             duration.toMinutes() < 1 -> "Vừa xong"
@@ -120,6 +107,8 @@ fun RestSuggestion(
             else -> "${duration.toDays()} ngày trước"
         }
     } ?: "Chưa nghỉ"
+
+    var showAddRecoveryActivityDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         restSessionViewModel.loadRestHistory()
@@ -158,13 +147,13 @@ fun RestSuggestion(
                 },
                 actions = {
                     IconButton(
-                        onClick = { /* TODO: Settings */ },
+                        onClick = { showReminderTimeDialog = true },
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Cài đặt nhắc nhở",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
@@ -224,65 +213,92 @@ fun RestSuggestion(
                 Spacer(modifier = Modifier.height(12.dp))
             }
             item {
-                Text(
-                    text = "Hoạt động thư giãn của bạn",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Hoạt động của bạn",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    TextButton(
+                        onClick = {
+                            showAddRecoveryActivityDialog = true
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text(
+                            text = "Thêm",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
             }
             item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(end = 16.dp)
-                ) {
-                    items(relaxActivities.size) { index ->
-                        val activity = relaxActivities[index]
-                        RelaxActivityCard(
-                            task = activity,
-                            onClick = {
-                                selectedRelaxTask = activity
-                                showRelaxTaskCard = true
-                            }
+                if( userRecoveryActivities.isEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        EmptyPlaceholder(
+                            title = "Bạn chưa thêm hoạt động thư giãn nào.",
+                            description = "Hãy thêm hoạt động thư giãn mà bạn thích hoặc thói quen nghỉ ngơi của bạn.",
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                showAddRecoveryActivityDialog = true
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                                contentColor = MaterialTheme.colorScheme.onTertiary
+                            ),
+                        ) {
+                            Text(text = "Thêm hoạt động thư giãn")
+                        }
+                    }
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(end = 16.dp)
+                    ) {
+                        items(userRecoveryActivities.size) { index ->
+                            val activity = userRecoveryActivities[index]
+                            RecoveryActivityCard(
+                                activity = activity,
+                                onClick = {
+                                    selectedActivity = activity
+                                    showRecoveryCard = true
+                                }
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
             }
             item {
                 Text(
-                    text = if (restEvents.isEmpty()) "Lịch nghỉ ngơi gợi ý" else "Lịch nghỉ ngơi của bạn",
+                    text = "Lịch trình gợi ý",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                RestScheduleTimeline(restEvents)
+                RestScheduleTimeline()
             }
         }
-    }
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Reminder Toast
-        AnimatedVisibility(
-            visible = showReminderToast,
-            enter = slideInVertically { -it } + fadeIn(),
-            exit = slideOutVertically { -it } + fadeOut(),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 8.dp)
-        ) {
-            ReminderToast(
-                onDismiss = { showReminderToast = false },
-                onSnooze = {
-                    showReminderToast = false
-                    coroutineScope.launch {
-                        delay(5 * 60 * 1000)
-                        showReminderToast = true
-                    }
+        if (showAddRecoveryActivityDialog) {
+            AddRecoveryActivityDialog(
+                onAdd = { recoveryActivity ->
+                    recoveryActivityViewModel.insertRecoveryActivity(recoveryActivity)
+                    showAddRecoveryActivityDialog = false
                 },
-                onStartRest = {
-                    showReminderToast = false
-                    showRecoveryCard = true
-                }
+                onDismiss = { showAddRecoveryActivityDialog = false }
             )
         }
     }
@@ -337,47 +353,6 @@ fun RestSuggestion(
             }
         )
     }
-    // Relax Task Detail Card
-    if (showRelaxTaskCard && selectedRelaxTask != null) {
-        RelaxTaskDetailCard(
-            task = selectedRelaxTask!!,
-            onDismiss = { showRelaxTaskCard = false },
-            onStart = { minutes ->
-                showRelaxTaskCard = false
-                relaxTotalTimeInSeconds = minutes * 60
-                remainingTimeInSeconds = relaxTotalTimeInSeconds
-                showRelaxCountdownTimer = true
-                isTimerRunning = true
-                // Lưu thời gian bắt đầu nghỉ
-                restStartTime = System.currentTimeMillis()
-            }
-        )
-    }
-    // Countdown Timer for relax task
-    if (showRelaxCountdownTimer && selectedRelaxTask != null) {
-        RelaxCountdownTimerDialog(
-            remainingTimeInSeconds = remainingTimeInSeconds,
-            totalTimeInSeconds = relaxTotalTimeInSeconds,
-            task = selectedRelaxTask,
-            onCancel = {
-                showRelaxCountdownTimer = false
-                isTimerRunning = false
-                val elapsedMinutes = restStartTime?.let { ((System.currentTimeMillis() - it) / 60000).toInt().coerceAtLeast(1) } ?: (relaxTotalTimeInSeconds / 60)
-                restSessionViewModel.addRestSession(
-                    com.example.worklifebalance.domain.model.RestSession(
-                        totalRestMinutes = elapsedMinutes,
-                        restSessions = listOf(
-                            com.example.worklifebalance.domain.model.RestSessionDetail(
-                                durationMinutes = elapsedMinutes,
-                                time = LocalTime.now()
-                            )
-                        )
-                    )
-                )
-                restStartTime = null
-            }
-        )
-    }
     // Countdown Timer for recovery activity
     if (showRecoveryCountdownTimer && selectedActivity != null) {
         CountdownTimerDialog(
@@ -394,12 +369,60 @@ fun RestSuggestion(
                         restSessions = listOf(
                             com.example.worklifebalance.domain.model.RestSessionDetail(
                                 durationMinutes = elapsedMinutes,
-                                time = LocalTime.now()
+                                time = LocalTime.now(),
+                                dateTime = java.time.LocalDateTime.now()
                             )
                         )
                     )
                 )
                 restStartTime = null
+            }
+        )
+    }
+
+    // Reminder Toast theo khung giờ tùy chỉnh
+    val context = LocalContext.current
+    LaunchedEffect(reminderTimesReloadKey) {
+        while (true) {
+            // Đọc danh sách thời gian nhắc nhở từ SharedPreferences
+            val sharedPref = context.getSharedPreferences("reminder_prefs", android.content.Context.MODE_PRIVATE)
+            val gson = com.google.gson.Gson()
+            val json = sharedPref.getString("reminder_times", null)
+            val timeList: List<String> = if (json != null) {
+                val type = com.google.gson.reflect.TypeToken.getParameterized(List::class.java, String::class.java).type
+                gson.fromJson(json, type)
+            } else emptyList()
+            val now = java.time.LocalDateTime.now()
+            val today = now.toLocalDate()
+            val reminderTimes = timeList.mapNotNull { t ->
+                try {
+                    val (h, m) = t.split(":").map { it.toInt() }
+                    java.time.LocalDateTime.of(today, java.time.LocalTime.of(h, m))
+                } catch (e: Exception) { null }
+            }.sorted()
+            val nextReminder = reminderTimes.firstOrNull { it.isAfter(now) }
+            if (nextReminder != null) {
+                val delayMillis = java.time.Duration.between(now, nextReminder).toMillis()
+                delay(delayMillis)
+                showReminderToast = true
+            } else {
+                // Chờ đến ngày mai
+                val millisToTomorrow = java.time.Duration.between(
+                    now,
+                    now.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                ).toMillis()
+                delay(millisToTomorrow)
+            }
+        }
+    }
+    // Hiển thị ReminderTimeDialog khi cần
+    if (showReminderTimeDialog) {
+        com.example.worklifebalance.ui.component.ReminderTimeDialog(
+            showDialog = showReminderTimeDialog,
+            onDismiss = { showReminderTimeDialog = false },
+            onSaved = {
+                // Tăng key để trigger reload reminder times nếu cần
+                reminderTimesReloadKey++
             }
         )
     }

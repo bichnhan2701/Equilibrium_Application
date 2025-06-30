@@ -29,4 +29,7 @@ class GoalRepositoryImpl @Inject constructor(
     override suspend fun getGoalById(id: String): Goal? {
         return goalDao.getGoalById(id)?.toDomain()
     }
+    override suspend fun deleteGoalsByDomainId(domainId: String) {
+        goalDao.deleteGoalsByDomainId(domainId)
+    }
 }

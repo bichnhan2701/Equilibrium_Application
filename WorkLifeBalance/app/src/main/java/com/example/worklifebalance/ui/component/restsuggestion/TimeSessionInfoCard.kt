@@ -15,7 +15,9 @@ import androidx.compose.ui.unit.dp
 import com.example.worklifebalance.R
 import com.example.worklifebalance.ui.theme.LightBlue
 import com.example.worklifebalance.ui.theme.PastelBlue
+import com.example.worklifebalance.ui.theme.PastelGreen
 import com.example.worklifebalance.ui.theme.PastelRed
+import com.example.worklifebalance.ui.theme.PastelYellow
 
 @Composable
 fun TimeSessionInfoCard(
@@ -97,18 +99,23 @@ fun TimeSessionInfoCard(
                         text = lastRestTime,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE57373)
+                        color = PastelRed
                     )
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
+            val progressColor = when {
+                currentEnergy >= 70 -> PastelGreen// Xanh lá
+                currentEnergy >= 30 -> PastelYellow // Vàng
+                else -> PastelRed // Đỏ nhạt
+            }
             LinearProgressIndicator(
                 progress = currentEnergy / 100f,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(4.dp)),
-                color = Color(0xFFE57373),
+                color = progressColor,
                 trackColor = Color.LightGray.copy(alpha = 0.3f)
             )
             Spacer(modifier = Modifier.height(8.dp))

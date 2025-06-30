@@ -23,4 +23,7 @@ interface GoalDao {
 
     @Query("DELETE FROM goal")
     suspend fun deleteAllGoals()
+
+    @Query("DELETE FROM goal WHERE domainId = :domainId")
+    suspend fun deleteGoalsByDomainId(domainId: String)
 }

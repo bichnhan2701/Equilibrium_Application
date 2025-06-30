@@ -10,4 +10,5 @@ interface GoalRepository {
     suspend fun deleteAllGoals()
     suspend fun getAllGoals(): List<Goal>
     suspend fun getGoalById(id: String): Goal?
+    suspend fun deleteGoalsByDomainId(domainId: String)
 }

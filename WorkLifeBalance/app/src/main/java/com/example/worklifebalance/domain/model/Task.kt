@@ -58,14 +58,11 @@ fun Task.totalPlannedDates(goalStartDate: Long, goalEndDate: Long, weekDays: Set
 }
 
 fun Task.progress(executedDates: List<Long>, goalStartDate: Long, goalEndDate: Long, weekDays: Set<Int> = emptySet(), monthDays: Set<Int> = emptySet()): Float {
-    val total = totalPlannedDates(goalStartDate, goalEndDate, weekDays, monthDays)
-    if (total == 0) return 0f
-    // Đếm số ngày planned đã được đánh dấu hoàn thành (có trong executedDates, so sánh theo ngày)
-    val plannedDatesSet = when (TaskType.fromString(taskType)) {
+    // Lấy danh sách plannedDates thực tế (dạng Long, đã chuẩn hóa về 0h)
+    val plannedDatesSet: Set<Long> = when (TaskType.fromString(taskType)) {
         TaskType.NORMAL, TaskType.REPEAT -> {
             when (TaskRepeatRule.fromString(repeatRule)) {
                 TaskRepeatRule.DAILY, TaskRepeatRule.WEEKLY, TaskRepeatRule.MONTHLY -> {
-                    // Tính lại danh sách plannedDates dựa vào rule
                     val start = goalStartDate
                     val end = if (goalEndDate > 0) goalEndDate else start + 365L * 24 * 60 * 60 * 1000
                     val result = mutableSetOf<Long>()
@@ -81,17 +78,49 @@ fun Task.progress(executedDates: List<Long>, goalStartDate: Long, goalEndDate: L
                             TaskRepeatRule.MONTHLY -> monthDays.contains(dayOfMonth)
                             else -> false
                         }
-                        if (match) result.add(d)
+                        if (match) {
+                            // Chuẩn hóa về 0h
+                            cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                            cal.set(java.util.Calendar.MINUTE, 0)
+                            cal.set(java.util.Calendar.SECOND, 0)
+                            cal.set(java.util.Calendar.MILLISECOND, 0)
+                            result.add(cal.timeInMillis)
+                        }
                         d += 24 * 60 * 60 * 1000
                     }
                     result
                 }
-                TaskRepeatRule.CUSTOM -> plannedDates.toSet()
-                else -> plannedDates.toSet()
+                TaskRepeatRule.CUSTOM -> plannedDates.map {
+                    val cal = java.util.Calendar.getInstance()
+                    cal.timeInMillis = it
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    cal.set(java.util.Calendar.MINUTE, 0)
+                    cal.set(java.util.Calendar.SECOND, 0)
+                    cal.set(java.util.Calendar.MILLISECOND, 0)
+                    cal.timeInMillis
+                }.toSet()
+                else -> plannedDates.map {
+                    val cal = java.util.Calendar.getInstance()
+                    cal.timeInMillis = it
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    cal.set(java.util.Calendar.MINUTE, 0)
+                    cal.set(java.util.Calendar.SECOND, 0)
+                    cal.set(java.util.Calendar.MILLISECOND, 0)
+                    cal.timeInMillis
+                }.toSet()
             }
         }
-        else -> plannedDates.toSet()
+        else -> plannedDates.map {
+            val cal = java.util.Calendar.getInstance()
+            cal.timeInMillis = it
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            cal.set(java.util.Calendar.MINUTE, 0)
+            cal.set(java.util.Calendar.SECOND, 0)
+            cal.set(java.util.Calendar.MILLISECOND, 0)
+            cal.timeInMillis
+        }.toSet()
     }
+    if (plannedDatesSet.isEmpty()) return 0f
     // Chuẩn hóa executedDates về 0h để so sánh
     val executedSet = executedDates.map {
         val cal = java.util.Calendar.getInstance()
@@ -103,7 +132,7 @@ fun Task.progress(executedDates: List<Long>, goalStartDate: Long, goalEndDate: L
         cal.timeInMillis
     }.toSet()
     val completed = plannedDatesSet.count { executedSet.contains(it) }
-    return completed.toFloat() / total
+    return completed.toFloat() / plannedDatesSet.size
 }
 
 fun Task.expectedProgressForTaskToday(

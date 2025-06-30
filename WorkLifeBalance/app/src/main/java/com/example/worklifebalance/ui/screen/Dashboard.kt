@@ -1,40 +1,31 @@
 package com.example.worklifebalance.ui.screen
 
 import android.content.Context
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import android.util.Log
+import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.worklifebalance.domain.model.Energy
 import com.example.worklifebalance.ui.theme.WorkLifeBalanceTheme
-import com.example.worklifebalance.ui.viewmodel.EnergyViewModel
-import com.example.worklifebalance.ui.viewmodel.TaskViewModel
-import com.example.worklifebalance.ui.viewmodel.DomainViewModel
-import com.example.worklifebalance.ui.viewmodel.GoalViewModel
-import com.example.worklifebalance.ui.viewmodel.TaskExecutionViewModel
+import com.example.worklifebalance.ui.viewmodel.*
 import androidx.core.content.edit
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.worklifebalance.domain.utils.getCurrentDate
-import com.example.worklifebalance.domain.utils.getGreetingByTime
-import com.example.worklifebalance.domain.utils.getLastTwoWords
+import com.example.worklifebalance.domain.utils.*
 import com.example.worklifebalance.navigation.Screen
 import com.example.worklifebalance.ui.component.dashboard.*
 import com.example.worklifebalance.ui.component.common.TasksSection
@@ -44,8 +35,13 @@ import com.example.worklifebalance.ui.component.common.GoalsSection
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.launch
 import com.example.worklifebalance.R
+import com.example.worklifebalance.domain.model.autoGoalType
+import com.example.worklifebalance.domain.model.progress
 import com.example.worklifebalance.ui.component.common.AddDomainDialog
 import com.example.worklifebalance.ui.component.common.AddGoalDialog
+import com.example.worklifebalance.ui.component.common.EmptyPlaceholder
+import com.example.worklifebalance.ui.component.restsuggestion.ReminderToast
+import kotlinx.coroutines.delay
 
 @OptIn(DelicateCoroutinesApi::class)
 @Composable
@@ -71,6 +67,9 @@ fun Dashboard(
     var showAddNewGoalPopup by remember { mutableStateOf(false) }
     var showAddNewDomainPopup by remember { mutableStateOf(false) }
     var showSuggestionPopup by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    var showReminderToast by remember { mutableStateOf(false) }
+    var reminderTimesReloadKey by remember { mutableIntStateOf(0) }
 
     val tasks by taskViewModel.tasks.collectAsState()
     val domains by domainViewModel.domains.collectAsState()
@@ -90,7 +89,7 @@ fun Dashboard(
             }
             // Ẩn popup sau 2 giây
             kotlinx.coroutines.GlobalScope.launch {
-                kotlinx.coroutines.delay(2000)
+                delay(5000)
                 showEnergyChangePopup = false
             }
         }
@@ -120,6 +119,110 @@ fun Dashboard(
             set(java.util.Calendar.MILLISECOND, 0)
         }.timeInMillis
         return executions.any { it.taskId == taskId && it.executionDate == today }
+    }
+
+    // Lấy danh sách nhiệm vụ hôm nay
+    val today = remember {
+        val cal = java.util.Calendar.getInstance()
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        cal.set(java.util.Calendar.MILLISECOND, 0)
+        cal.timeInMillis
+    }
+    val todayTasks = remember(tasks, goals) {
+        tasks.filter { task ->
+            when (com.example.worklifebalance.domain.model.TaskType.fromString(task.taskType)) {
+                com.example.worklifebalance.domain.model.TaskType.NORMAL -> {
+                    task.plannedDates.any {
+                        val cal = java.util.Calendar.getInstance()
+                        cal.timeInMillis = it
+                        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                        cal.set(java.util.Calendar.MINUTE, 0)
+                        cal.set(java.util.Calendar.SECOND, 0)
+                        cal.set(java.util.Calendar.MILLISECOND, 0)
+                        cal.timeInMillis == today
+                    }
+                }
+                com.example.worklifebalance.domain.model.TaskType.REPEAT -> {
+                    val repeatRule = com.example.worklifebalance.domain.model.TaskRepeatRule.fromString(task.repeatRule)
+                    when (repeatRule) {
+                        com.example.worklifebalance.domain.model.TaskRepeatRule.DAILY -> {
+                            // Nếu plannedDates có ngày hôm nay thì hiển thị
+                            task.plannedDates.any {
+                                val cal = java.util.Calendar.getInstance()
+                                cal.timeInMillis = it
+                                cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                                cal.set(java.util.Calendar.MINUTE, 0)
+                                cal.set(java.util.Calendar.SECOND, 0)
+                                cal.set(java.util.Calendar.MILLISECOND, 0)
+                                cal.timeInMillis == today
+                            }
+                        }
+                        com.example.worklifebalance.domain.model.TaskRepeatRule.WEEKLY -> {
+                            // plannedDates chứa các ngày lặp lại (dạng millis), kiểm tra nếu có ngày nào là cùng thứ với hôm nay và trùng ngày
+                            task.plannedDates.any {
+                                val plannedCal = java.util.Calendar.getInstance()
+                                plannedCal.timeInMillis = it
+                                plannedCal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                                plannedCal.set(java.util.Calendar.MINUTE, 0)
+                                plannedCal.set(java.util.Calendar.SECOND, 0)
+                                plannedCal.set(java.util.Calendar.MILLISECOND, 0)
+                                val todayCal = java.util.Calendar.getInstance()
+                                todayCal.timeInMillis = today
+                                plannedCal.get(java.util.Calendar.DAY_OF_WEEK) == todayCal.get(java.util.Calendar.DAY_OF_WEEK) &&
+                                plannedCal.timeInMillis == todayCal.timeInMillis
+                            }
+                        }
+                        com.example.worklifebalance.domain.model.TaskRepeatRule.MONTHLY -> {
+                            // plannedDates chứa các ngày lặp lại (dạng millis), kiểm tra nếu có ngày nào là cùng ngày trong tháng với hôm nay và trùng ngày
+                            task.plannedDates.any {
+                                val plannedCal = java.util.Calendar.getInstance()
+                                plannedCal.timeInMillis = it
+                                plannedCal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                                plannedCal.set(java.util.Calendar.MINUTE, 0)
+                                plannedCal.set(java.util.Calendar.SECOND, 0)
+                                plannedCal.set(java.util.Calendar.MILLISECOND, 0)
+                                val todayCal = java.util.Calendar.getInstance()
+                                todayCal.timeInMillis = today
+                                plannedCal.get(java.util.Calendar.DAY_OF_MONTH) == todayCal.get(java.util.Calendar.DAY_OF_MONTH) &&
+                                plannedCal.timeInMillis == todayCal.timeInMillis
+                            }
+                        }
+                        com.example.worklifebalance.domain.model.TaskRepeatRule.CUSTOM -> {
+                            task.plannedDates.any {
+                                val cal = java.util.Calendar.getInstance()
+                                cal.timeInMillis = it
+                                cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                                cal.set(java.util.Calendar.MINUTE, 0)
+                                cal.set(java.util.Calendar.SECOND, 0)
+                                cal.set(java.util.Calendar.MILLISECOND, 0)
+                                cal.timeInMillis == today
+                            }
+                        }
+                        else -> false
+                    }
+                }
+                else -> false
+            }
+        }
+    }
+
+    // Lấy danh sách goal đang tiến hành
+    val executedDatesMap = tasks.associate { task ->
+        task.id to executions.filter { it.taskId == task.id }.map { it.executionDate }
+    }
+    val inProgressGoals = remember(goals, tasks, executions) {
+        val filtered = goals.filter { goal ->
+            val type = goal.autoGoalType(tasks, executedDatesMap)
+            Log.d(
+                "DashboardGoal",
+                "Goal: ${goal.name}, Progress: ${goal.progress(tasks, executedDatesMap) * 100}, Type: $type, Start: ${goal.startDate}, End: ${goal.endDate}, Now: ${System.currentTimeMillis()}"
+            )
+            type == com.example.worklifebalance.domain.model.GoalType.IN_PROGRESS.name
+        }
+        Log.d("DashboardGoal", "inProgressGoals count: ${filtered.size}")
+        filtered
     }
 
     Scaffold (
@@ -182,8 +285,8 @@ fun Dashboard(
             item {
                 QuickInfoCards(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    goalsCount = 0,
-                    tasksCount = 0,
+                    goalsCount = inProgressGoals.size,
+                    tasksCount = todayTasks.size,
                     onViewTasks = {
                         navController.navigate(Screen.TaskManagement.route)
                     },
@@ -247,61 +350,118 @@ fun Dashboard(
                     }
                 }
             }
-            // Nhiệm vụ gợi ý
-            item {
-                TasksSection(
-                    titleTasksSection = "Nhiệm vụ gợi ý",
-                    tasks = tasks,
-                    domains = domains,
-                    goals = goals,
-                    executions = executions,
-                    isTaskCompletedToday = ::isTaskCompletedToday,
-                    onCheckTask = { task ->
-                        val execution = com.example.worklifebalance.domain.model.TaskExecution(
-                            taskId = task.id,
-                            executionDate = System.currentTimeMillis()
-                        )
-                        taskExecutionViewModel.insertTaskExecution(execution)
-                    },
-                    onUpdateTask = { task ->
-                        taskViewModel.updateTask(task)
-                    },
-                    onDeleteTask = { task ->
-                        taskViewModel.deleteTask(task)
-                    },
-                    onViewOrDeleteAll = {
-                        navController.navigate(Screen.TaskManagement.route)
-                    },
-                    viewOrDeleteAllText = "Xem tất cả"
-                )
-            }
-            // Hiển thị danh sách muc tiêu
-            item {
-                // Chuẩn bị dữ liệu executedDatesMap cho GoalItem
-                val executedDatesMap = tasks.associate { task ->
-                    task.id to executions.filter { it.taskId == task.id }.map { it.executionDate }
+            if (todayTasks.isNotEmpty()) {
+                item {
+                    TasksSection(
+                        titleTasksSection = "Nhiệm vụ hôm nay",
+                        tasks = todayTasks,
+                        domains = domains,
+                        goals = goals,
+                        executions = executions,
+                        isTaskCompletedToday = ::isTaskCompletedToday,
+                        onCheckTask = { task ->
+                            val execution = com.example.worklifebalance.domain.model.TaskExecution(
+                                taskId = task.id,
+                                executionDate = System.currentTimeMillis()
+                            )
+                            taskExecutionViewModel.insertTaskExecution(execution)
+                        },
+                        onUpdateTask = { task ->
+                            taskViewModel.updateTask(task)
+                        },
+                        onDeleteTask = { task ->
+                            taskViewModel.deleteTask(task)
+                        },
+                        onViewOrDeleteAll = {
+                            navController.navigate(Screen.TaskManagement.route)
+                        },
+                        viewOrDeleteAllText = "Xem tất cả"
+                    )
                 }
-                GoalsSection(
-                    goals = goals,
-                    domains = domains,
-                    onGoalClick = { goalId ->
-                        navController.navigate(Screen.GoalDetailManagement.goalDetailManagementRoute(goalId))
-                    },
-                    onUpdateGoal = {
-                        goalViewModel.updateGoal(it)
-                        goalViewModel.loadGoals()
-                    },
-                    onDeleteGoal = {
-                        goalViewModel.deleteGoal(it)
-                        goalViewModel.loadGoals()
-                    },
-                    onViewOrDeleteAll = {
-                        navController.navigate(Screen.GoalManagement.route)
-                    },
-                    viewOrDeleteAllText = "Xem tất cả",
-                    tasks = tasks,
-                    executedDatesMap = executedDatesMap
-                )
+            } else {
+                item{
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Nhiệm vụ hôm nay",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            EmptyPlaceholder(
+                                title = "Chưa có dữ liệu nhiệm vụ.",
+                                description = "Hãy bắt đầu bằng việc thêm một mà lĩnh vực bạn quan tâm.",
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Hiển thị danh sách mục tiêu đang tiến hành
+            if (inProgressGoals.isNotEmpty()) {
+                item {
+                    GoalsSection(
+                        titleDisplay = "Mục tiêu đang tiến hành",
+                        goals = inProgressGoals,
+                        domains = domains,
+                        onGoalClick = { goalId ->
+                            navController.navigate(Screen.GoalDetailManagement.goalDetailManagementRoute(goalId))
+                        },
+                        onUpdateGoal = {
+                            goalViewModel.updateGoal(it)
+                            goalViewModel.loadGoals()
+                        },
+                        onDeleteGoal = {
+                            goalViewModel.deleteGoal(it)
+                            goalViewModel.loadGoals()
+                        },
+                        onViewOrDeleteAll = {
+                            navController.navigate(Screen.GoalManagement.route)
+                        },
+                        viewOrDeleteAllText = "Xem tất cả",
+                        tasks = tasks,
+                        executedDatesMap = executedDatesMap
+                    )
+                }
+            } else {
+                item{
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Mục tiêu đang tiến hành",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            EmptyPlaceholder(
+                                title = "Chưa có dữ liệu mục tiêu.",
+                                description = "Hãy bắt đầu bằng việc thêm một mà lĩnh vực bạn quan tâm.",
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -336,6 +496,32 @@ fun Dashboard(
                 onDismiss = { showSuggestionPopup = false },
                 onExploreActivityClick = {
                     showSuggestionPopup = false
+                    navController.navigate(Screen.Rest.route)
+                }
+            )
+        }
+    }
+    // Reminder Toast
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedVisibility(
+            visible = showReminderToast,
+            enter = slideInVertically { -it } + fadeIn(),
+            exit = slideOutVertically { -it } + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 8.dp)
+        ) {
+            ReminderToast(
+                onDismiss = { showReminderToast = false },
+                onSnooze = {
+                    showReminderToast = false
+                    coroutineScope.launch {
+                        delay(5 * 60 * 1000)
+                        showReminderToast = true
+                    }
+                },
+                onStartRest = {
+                    showReminderToast = false
                     navController.navigate(Screen.Rest.route)
                 }
             )
@@ -400,6 +586,70 @@ fun Dashboard(
                 showAddNewDomainPopup = false
             },
             onDismiss = { showAddNewDomainPopup = false }
+        )
+    }
+    // Reminder Toast theo khung giờ tùy chỉnh
+    LaunchedEffect(reminderTimesReloadKey) {
+        while (true) {
+            // Đọc danh sách thời gian nhắc nhở từ SharedPreferences
+            val sharedPref = context.getSharedPreferences("reminder_prefs", Context.MODE_PRIVATE)
+            val gson = com.google.gson.Gson()
+            val json = sharedPref.getString("reminder_times", null)
+            val timeList: List<String> = if (json != null) {
+                val type = com.google.gson.reflect.TypeToken.getParameterized(List::class.java, String::class.java).type
+                gson.fromJson(json, type)
+            } else emptyList()
+            val now = java.time.LocalDateTime.now()
+            val today = now.toLocalDate()
+            val reminderTimes = timeList.mapNotNull { t ->
+                try {
+                    val (h, m) = t.split(":").map { it.toInt() }
+                    java.time.LocalDateTime.of(today, java.time.LocalTime.of(h, m))
+                } catch (e: Exception) { null }
+            }.sorted()
+            val nextReminder = reminderTimes.firstOrNull { it.isAfter(now) }
+            if (nextReminder != null) {
+                val delayMillis = java.time.Duration.between(now, nextReminder).toMillis()
+                delay(delayMillis)
+                showReminderToast = true
+            } else {
+                // Chờ đến ngày mai
+                val millisToTomorrow = java.time.Duration.between(
+                    now,
+                    now.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                ).toMillis()
+                delay(millisToTomorrow)
+            }
+        }
+    }
+
+    var showConfirmDeleteGoal by remember { mutableStateOf(false) }
+    var goalToDelete by remember { mutableStateOf<com.example.worklifebalance.domain.model.Goal?>(null) }
+    // Dialog xác nhận xóa mục tiêu
+    if (showConfirmDeleteGoal && goalToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showConfirmDeleteGoal = false
+                goalToDelete = null
+            },
+            title = { Text("Xác nhận xóa mục tiêu") },
+            text = { Text("Bạn có chắc chắn muốn xóa mục tiêu này và tất cả nhiệm vụ liên quan không?") },
+            confirmButton = {
+                Button(onClick = {
+                    goalToDelete?.let {
+                        goalViewModel.deleteGoal(it)
+                        taskViewModel.deleteTasksByGoalId(it.id)
+                    }
+                    showConfirmDeleteGoal = false
+                    goalToDelete = null
+                }) { Text("Xóa") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showConfirmDeleteGoal = false
+                    goalToDelete = null
+                }) { Text("Hủy") }
+            }
         )
     }
 }

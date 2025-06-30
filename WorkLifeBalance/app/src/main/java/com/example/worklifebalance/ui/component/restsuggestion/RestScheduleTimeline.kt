@@ -23,10 +23,8 @@ import com.example.worklifebalance.ui.theme.PastelGreen
 import kotlin.collections.forEachIndexed
 
 @Composable
-fun RestScheduleTimeline(
-    restEvents: List<RestEvent>
-) {
-    val displayEvents = if (restEvents.isEmpty()) listOf(
+fun RestScheduleTimeline() {
+    val displayEvents = listOf(
         RestEvent("Tập thể dục hoặc yoga buổi sáng", "06:00"),
         RestEvent("Giãn cơ hoặc đi dạo ngắn giữa buổi sáng", "10:00"),
         RestEvent("Ăn trưa, nghỉ ngơi", "12:00"),
@@ -36,7 +34,7 @@ fun RestScheduleTimeline(
         RestEvent("Ăn tối, nghỉ ngơi", "19:00"),
         RestEvent("Đọc sách hay nghe nhạc", "21:00"),
         RestEvent("Thiền", "22:00"),
-    ) else restEvents
+    )
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -74,13 +72,13 @@ fun RestScheduleTimeline(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
+                        Text(
+                            text = event.time,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                    Text(
-                        text = event.time,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
                 }
                 if (index < displayEvents.size - 1) {
                     Row(

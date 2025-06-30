@@ -28,4 +28,10 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun getTaskById(taskId: String): Task? {
         return taskDao.getTaskById(taskId)?.toDomain()
     }
+    override suspend fun deleteTasksByGoalId(goalId: String) {
+        taskDao.deleteTasksByGoalId(goalId)
+    }
+    override suspend fun deleteTasksByDomainId(domainId: String) {
+        taskDao.deleteTasksByDomainId(domainId)
+    }
 }

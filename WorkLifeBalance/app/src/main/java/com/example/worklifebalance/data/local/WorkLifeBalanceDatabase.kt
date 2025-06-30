@@ -15,9 +15,10 @@ import com.example.worklifebalance.data.local.entity.*
         TaskEntity::class,
         TaskExecutionEntity::class,
         EnergyEntity::class,
-        RestSessionEntity::class
+        RestSessionEntity::class,
+        RecoveryActivityEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(ListLongConverter::class, ULongConverter::class)
@@ -28,4 +29,5 @@ abstract class WorkLifeBalanceDatabase : RoomDatabase() {
     abstract fun taskExecutionDao(): TaskExecutionDao
     abstract fun energyDao(): EnergyDao
     abstract fun restSessionDao(): RestSessionDao
+    abstract fun recoveryActivityDao(): RecoveryActivityDao
 }

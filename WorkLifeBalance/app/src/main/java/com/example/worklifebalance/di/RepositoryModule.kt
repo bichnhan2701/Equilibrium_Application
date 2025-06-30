@@ -46,4 +46,10 @@ abstract class RepositoryModule {
     abstract fun bindRestSessionRepository(
         impl: RestSessionRepositoryImpl
     ): RestSessionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRecoveryActivityRepository(
+        impl: RecoveryActivityRepositoryImpl
+    ): RecoveryActivityRepository
 }

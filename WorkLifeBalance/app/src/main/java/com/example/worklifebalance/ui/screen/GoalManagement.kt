@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -18,7 +19,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.worklifebalance.domain.model.Domain
 import com.example.worklifebalance.domain.utils.getCurrentDate
+import com.example.worklifebalance.navigation.Screen
 import com.example.worklifebalance.ui.component.common.AddGoalDialog
+import com.example.worklifebalance.ui.component.common.EmptyPlaceholder
 import com.example.worklifebalance.ui.component.common.GoalsSection
 import com.example.worklifebalance.ui.component.goal.GoalFilterByDomainBar
 import com.example.worklifebalance.ui.viewmodel.GoalViewModel
@@ -61,6 +64,7 @@ fun GoalManagement(
         domainViewModel.loadDomains()
         goalViewModel.loadGoals()
         taskViewModel.loadTasks()
+        taskExecutionViewModel.loadAllExecutions()
     }
 
     Scaffold (
@@ -122,10 +126,11 @@ fun GoalManagement(
                             task.id to executions.filter { it.taskId == task.id }.map { it.executionDate }
                         }
                         GoalsSection(
+                            titleDisplay = "Danh sách mục tiêu",
                             goals = goals.filter { it.domainId == selectedFilter?.id || selectedFilter == null },
                             domains = domains,
                             onGoalClick = { goalId ->
-//                                navController.navigate(goalId)
+                                navController.navigate(Screen.GoalDetailManagement.goalDetailManagementRoute(goalId))
                             },
                             onUpdateGoal =  { goal ->
                                 goalViewModel.updateGoal(goal)
@@ -138,9 +143,39 @@ fun GoalManagement(
                             },
                             viewOrDeleteAllText = "Xóa tất cả",
                             tasks = tasks,
-                            executedDatesMap = executedDatesMap                        )
+                            executedDatesMap = executedDatesMap
+                        )
                     }
                     Divider(modifier = Modifier.padding(16.dp))
+                }
+                if( goals.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Danh sách mục tiêu",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                EmptyPlaceholder(
+                                    title = "Chưa có dữ liệu mục tiêu.",
+                                    description = "Hãy bắt đầu bằng việc thêm một mà lĩnh vực bạn quan tâm.",
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

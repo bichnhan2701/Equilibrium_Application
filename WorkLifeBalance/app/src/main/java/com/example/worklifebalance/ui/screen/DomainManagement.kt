@@ -28,6 +28,8 @@ import com.example.worklifebalance.ui.viewmodel.DomainViewModel
 import com.example.worklifebalance.ui.viewmodel.GoalViewModel
 import com.example.worklifebalance.domain.utils.getCurrentDate
 import com.example.worklifebalance.ui.component.common.EditDomainDialog
+import com.example.worklifebalance.ui.component.common.EmptyPlaceholder
+import com.example.worklifebalance.ui.viewmodel.TaskViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +38,7 @@ fun DomainManagement(
     navController: NavController,
     viewModel: DomainViewModel = hiltViewModel(),
     goalViewModel: GoalViewModel = hiltViewModel(),
+    taskViewModel: TaskViewModel = hiltViewModel()
 ) {
     val currentDate = getCurrentDate()
 
@@ -63,17 +66,6 @@ fun DomainManagement(
     Scaffold (
         topBar = {
             TopAppBar(
-                navigationIcon = {
-                    IconButton(
-                        onClick = { navController.popBackStack() },
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Quay lại"
-                        )
-                    }
-                },
                 title = {
                     Column {
                         Text(
@@ -162,6 +154,30 @@ fun DomainManagement(
                     }
                 }
             }
+            if( domains.isEmpty() && !isLoading) {
+                item{
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            EmptyPlaceholder(
+                                title = "Chưa có dữ liệu domain.",
+                                description = "Hãy bắt đầu bằng việc thêm một mà lĩnh vực bạn quan tâm.",
+                            )
+                        }
+                    }
+                }
+            }
 
         }
     }
@@ -189,9 +205,11 @@ fun DomainManagement(
         AlertDialog(
             onDismissRequest = { deletingDomain = null },
             title = { Text("Xác nhận xóa lĩnh vực") },
-            text = { Text("Bạn có chắc chắn muốn xóa lĩnh vực '${domain.name}' không?") },
+            text = { Text("Bạn có chắc chắn muốn xóa lĩnh vực '${domain.name}' không? Tất cả mục tiêu và nhiệm vụ liên quan cũng sẽ bị xóa.") },
             confirmButton = {
                 Button(onClick = {
+                    goalViewModel.deleteGoalsByDomainId(domain.id)
+                    taskViewModel.deleteTasksByDomainId(domain.id)
                     viewModel.deleteDomainById(domain.id)
                     deletingDomain = null
                 }) { Text("Xóa") }

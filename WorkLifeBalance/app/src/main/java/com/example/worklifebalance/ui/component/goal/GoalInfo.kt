@@ -185,29 +185,6 @@ fun GoalInfo(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val actualProgress = goal.progress(tasks, executedDatesMap)
-                val expectedProgress = goal.expectedProgressForGoalToday(tasks)
-                val isLate = actualProgress < expectedProgress && actualProgress < 1f
-                if (isLate) {
-                    Surface(
-                        color = LightRed,
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = "Chậm tiến độ",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Red,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
         }
     }
 }

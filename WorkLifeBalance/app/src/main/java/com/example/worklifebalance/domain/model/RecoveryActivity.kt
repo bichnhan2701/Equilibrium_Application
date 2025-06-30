@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 data class RecoveryActivity(
     val id: String,
     val name: String,
-    val description: String,
+    val description: String? = "",
     val durationInMinutes: Int,
     val color: Color,
 )
@@ -13,7 +13,7 @@ data class RecoveryActivity(
 val sampleRecoveryActivities = listOf(
     RecoveryActivity("1", "Hít thở sâu", "Thư giãn bằng cách hít thở sâu trong vài phút.", 5, Color(0xFF81C784)),
     RecoveryActivity("2", "Ngủ ngắn", "Chợp mắt 10-20 phút để phục hồi năng lượng.", 15, Color(0xFF64B5F6)),
-    RecoveryActivity("3", "Tập thể dục nhẹ nhàng", "Vận động nhẹ như đi bộ, vươn vai.", 10, Color(0xFFFFB74D)),
+    RecoveryActivity("3", "Tập thể dục nhẹ", "Vận động nhẹ như đi bộ, vươn vai.", 10, Color(0xFFFFB74D)),
     RecoveryActivity("4", "Thiền", "Ngồi thiền giúp tĩnh tâm và giảm stress.", 10, Color(0xFF9575CD)),
     RecoveryActivity("5", "Uống nước", "Bổ sung nước giúp tỉnh táo và khỏe mạnh.", 3, Color(0xFF4FC3F7)),
     RecoveryActivity("6", "Nghe nhạc thư giãn", "Thư giãn với bản nhạc yêu thích.", 7, Color(0xFFFF8A65)),

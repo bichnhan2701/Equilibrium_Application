@@ -18,16 +18,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.worklifebalance.domain.model.Domain
 import com.example.worklifebalance.domain.utils.getCurrentDate
+import com.example.worklifebalance.ui.component.analytics.DomainSummaryCard
 import com.example.worklifebalance.ui.component.analytics.EnergyHeatmapChart
-import com.example.worklifebalance.ui.component.analytics.ProgressSummaryCard
+import com.example.worklifebalance.ui.component.analytics.GoalSummaryCard
 import com.example.worklifebalance.ui.component.analytics.TaskAllocationDetailDialog
 import com.example.worklifebalance.ui.component.analytics.TaskAllocationPieChart
 import com.example.worklifebalance.ui.theme.*
-import com.example.worklifebalance.ui.viewmodel.DomainViewModel
-import com.example.worklifebalance.ui.viewmodel.EnergyViewModel
-import com.example.worklifebalance.ui.viewmodel.GoalViewModel
-import com.example.worklifebalance.ui.viewmodel.TaskExecutionViewModel
-import com.example.worklifebalance.ui.viewmodel.TaskViewModel
+import com.example.worklifebalance.ui.viewmodel.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,17 +72,6 @@ fun AnalyticsReport(
                         )
                     }
                 },
-                actions = {
-                    IconButton(
-                        onClick = { /* TODO: Settings */ },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Cài đặt",
-                            tint = PastelPurple
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -103,17 +89,26 @@ fun AnalyticsReport(
             item {
                 val executedDatesMap = executions.groupBy { it.taskId }
                     .mapValues { entry -> entry.value.map { it.executionDate } }
-                ProgressSummaryCard(
+                GoalSummaryCard(
                     goals = goals,
                     tasks = tasks,
                     executedDatesMap = executedDatesMap
                 )
                 Spacer(modifier = Modifier.height(24.dp))
             }
+            // Domain Summary
+            item {
+                DomainSummaryCard(
+                    domains = domains,
+                    tasks = tasks
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
             // Time Allocation
             item {
                 Text(
-                    text = "Phân bổ nhiệm vụ theo lĩnh vực",
+                    text = "Phân bổ nhiệm vụ",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -131,7 +126,7 @@ fun AnalyticsReport(
             // Energy & Emotion Charts
             item {
                 Text(
-                    text = "Phân bổ nhiệm vụ theo lĩnh vực",
+                    text = "Biểu đồ lịch sử năng lượng",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )

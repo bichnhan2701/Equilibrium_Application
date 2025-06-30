@@ -18,6 +18,7 @@ import com.example.worklifebalance.domain.model.Task
 
 @Composable
 fun GoalsSection(
+    titleDisplay: String,
     goals: List<Goal>,
     domains: List<Domain>,
     onGoalClick: (goalId: String) -> Unit,
@@ -48,7 +49,7 @@ fun GoalsSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Mục tiêu đang tiến hành",
+                    text = titleDisplay,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -74,7 +75,7 @@ fun GoalsSection(
                         goal = goal,
                         domainName = domainName,
                         domainColor = domainColor,
-                        onViewDetail = onGoalClick,
+                        onViewDetail = { onGoalClick(goal.id) },
                         onUpdateGoal = { editingGoal = goal },
                         onDeleteGoal = { deletingGoal = goal },
                         tasks = tasks,

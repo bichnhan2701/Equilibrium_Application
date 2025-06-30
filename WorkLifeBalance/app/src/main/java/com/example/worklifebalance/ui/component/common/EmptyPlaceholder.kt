@@ -29,8 +29,7 @@ fun EmptyPlaceholder(
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp),
+            .fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
         Column(

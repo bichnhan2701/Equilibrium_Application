@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.worklifebalance.ui.theme.LightBlue
+import com.example.worklifebalance.ui.theme.PastelBlue
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -39,7 +40,7 @@ fun TaskFilterByDateBar(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -48,11 +49,11 @@ fun TaskFilterByDateBar(
         ) {
             Text(
                 text = "Nhiệm vụ theo ngày",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
             )
             Text(
                 text = "Bỏ lọc",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.clickable { onClearDate() }
             )
@@ -85,11 +86,11 @@ fun TaskFilterByDateBar(
                     calendar.get(Calendar.DAY_OF_MONTH)
                 ).show()
             },
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = LightBlue,
-                contentColor = MaterialTheme.colorScheme.onSurface
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                containerColor = PastelBlue.copy(alpha = 0.2f)
             ),
             border = ButtonDefaults.outlinedButtonBorder
         ) {

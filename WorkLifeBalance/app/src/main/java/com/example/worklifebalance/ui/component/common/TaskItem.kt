@@ -1,6 +1,5 @@
 package com.example.worklifebalance.ui.component.common
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -32,6 +31,7 @@ import kotlin.math.roundToInt
 fun TaskItem(
     task: Task,
     domainName: String,
+    domainColor: Color,
     isChecked: Boolean,
     onCheckTask: (() -> Unit)? = null,
     onUpdateTask: (Task) -> Unit,
@@ -162,14 +162,14 @@ fun TaskItem(
                         Spacer(modifier = Modifier.width(8.dp))
                         // Domain Tag
                         Surface(
-                            color = Color.LightGray.copy(alpha = 0.5f),
+                            color = domainColor.copy(alpha = 0.3f),
                             shape = RoundedCornerShape(4.dp),
                             modifier = Modifier.wrapContentWidth()
                         ) {
                             Text(
                                 text = domainName,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = domainColor,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }

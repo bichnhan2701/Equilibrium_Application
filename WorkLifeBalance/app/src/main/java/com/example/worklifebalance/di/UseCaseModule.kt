@@ -104,6 +104,10 @@ object UseCaseModule {
     @Singleton
     fun provideGetTaskByIdUseCase(repo: TaskRepository) = GetTaskByIdUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideDeleteTasksByGoalIdUseCase(repo: TaskRepository) = DeleteTasksByGoalIdUseCase(repo)
+
     // TaskExecution usecases
     @Provides
     @Singleton

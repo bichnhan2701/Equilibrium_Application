@@ -1,7 +1,5 @@
 package com.example.worklifebalance.ui.component.analytics
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -28,11 +26,15 @@ fun EnergyHeatmapChart(
     energyList: List<Energy>,
 ) {
     val today = LocalDate.now()
-    // Chuyển energyList thành energyData: Map<LocalDate, Int>
-    val energyData = energyList.associate { energy ->
-        val date = java.time.Instant.ofEpochMilli(energy.updatedAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-        date to energy.energy
-    }
+    // Chuyển energyList thành energyData: Map<LocalDate, Float> (năng lượng trung bình mỗi ngày)
+    val energyData = energyList
+        .groupBy { energy ->
+            java.time.Instant.ofEpochMilli(energy.updatedAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        }
+        .mapValues { entry ->
+            val energies = entry.value.map { it.energy }
+            energies.average().toFloat()
+        }
 
     // Luôn hiển thị tháng hiện tại
     val startOfMonth = today.withDayOfMonth(1)
@@ -42,6 +44,10 @@ fun EnergyHeatmapChart(
 
     val daysToShow = ChronoUnit.DAYS.between(startDate, endDate).toInt() + 1
     val weeksToShow = ceil(daysToShow / 7.0).toInt()
+
+    // Tính năng lượng trung bình trong tháng hiện tại
+    val monthAverages = energyData.filterKeys { it.month == today.month && it.year == today.year }
+    val monthAverage = if (monthAverages.isNotEmpty()) monthAverages.values.average().toInt() else 0
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -99,12 +105,12 @@ fun EnergyHeatmapChart(
                                         .padding(2.dp)
                                 )
                             } else {
-                                val energyLevel = energyData[cellDate] ?: -1
+                                val energyLevel = (energyData[cellDate] ?: -1).toFloat()
                                 val color = when {
-                                    energyLevel == -1 -> Color.LightGray.copy(alpha = 0.5f)
-                                    energyLevel <= 30 -> Red.copy(alpha = 0.2f + (energyLevel / 100f) * 0.8f)
-                                    energyLevel in 31..70 -> Yellow.copy(alpha = 0.2f + (energyLevel / 100f) * 0.8f)
-                                    energyLevel in 71..100 -> Green.copy(alpha = 0.2f + (energyLevel / 100f) * 0.8f)
+                                    energyLevel == -1f -> Color.LightGray.copy(alpha = 0.5f)
+                                    energyLevel <= 30f -> Red.copy(alpha = 0.2f + (energyLevel / 100f) * 0.8f)
+                                    energyLevel in 31f..70f -> Yellow.copy(alpha = 0.2f + (energyLevel / 100f) * 0.8f)
+                                    energyLevel in 71f..100f -> Green.copy(alpha = 0.2f + (energyLevel / 100f) * 0.8f)
                                     else -> Color.LightGray.copy(alpha = 0.5f)
                                 }
 
@@ -179,6 +185,28 @@ fun EnergyHeatmapChart(
                     color = Color.DarkGray
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Mức năng lượng trung bình của bạn trong tháng này là: $monthAverage%.",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 8.dp),
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val advice = when {
+                monthAverage <= 30 -> "Năng lượng trung bình của bạn ở mức thấp, bạn nên dành thời gian nghỉ ngơi, thư giãn và ngủ đủ giấc để không ảnh hưởng đến việc hoàn thành nhiệm vụ nhé!"
+                monthAverage in 31..70 -> "Năng lượng ở mức trung bình, hãy duy trì thói quen sinh hoạt lành mạnh và cân bằng giữa công việc và nghỉ ngơi."
+                monthAverage > 70 -> "Năng lượng trung bình của bạn ở mức cao, bạn có thể tiếp tục phát huy, thử thách bản thân với các mục tiêu mới!"
+                else -> "Không đủ dữ liệu để đưa ra lời khuyên."
+            }
+            Text(
+                text = advice,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 4.dp),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

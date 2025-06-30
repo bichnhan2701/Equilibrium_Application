@@ -22,4 +22,10 @@ interface TaskDao {
 
     @Query("SELECT * FROM task WHERE id = :taskId LIMIT 1")
     suspend fun getTaskById(taskId: String): TaskEntity?
+
+    @Query("DELETE FROM task WHERE goalId = :goalId")
+    suspend fun deleteTasksByGoalId(goalId: String)
+
+    @Query("DELETE FROM task WHERE domainId = :domainId")
+    suspend fun deleteTasksByDomainId(domainId: String)
 }

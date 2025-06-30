@@ -16,12 +16,36 @@ object RestSessionMapper {
         return RestSession(
             id = entity.id,
             totalRestMinutes = entity.totalRestMinutes,
-            restSessions = details.map { RestSessionDetail(it.durationMinutes, LocalTime.parse(it.time)) }
+            restSessions = details.map {
+                val parsedTime = LocalTime.parse(it.time)
+                val now = java.time.LocalDateTime.now()
+                val todayDate = now.toLocalDate()
+                val fallbackDateTime =
+                    if (parsedTime.isBefore(now.toLocalTime()) || parsedTime == now.toLocalTime())
+                        java.time.LocalDateTime.of(todayDate, parsedTime)
+                    else
+                        java.time.LocalDateTime.of(todayDate.minusDays(1), parsedTime)
+                val parsedDateTime = try {
+                    if (!it.dateTime.isNullOrBlank()) java.time.LocalDateTime.parse(it.dateTime)
+                    else fallbackDateTime
+                } catch (e: Exception) {
+                    fallbackDateTime
+                }
+                RestSessionDetail(
+                    it.durationMinutes,
+                    parsedTime,
+                    parsedDateTime
+                )
+            }
         )
     }
 
     fun toEntity(domain: RestSession): RestSessionEntity {
-        val details = domain.restSessions.map { RestSessionDetailJson(it.durationMinutes, it.time.toString()) }
+        val details = domain.restSessions.map { RestSessionDetailJson(
+            it.durationMinutes,
+            it.time.toString(),
+            it.dateTime.toString()
+        ) }
         return RestSessionEntity(
             id = domain.id,
             totalRestMinutes = domain.totalRestMinutes,
@@ -31,7 +55,7 @@ object RestSessionMapper {
 
     private data class RestSessionDetailJson(
         val durationMinutes: Int,
-        val time: String
+        val time: String,
+        val dateTime: String
     )
 }
-

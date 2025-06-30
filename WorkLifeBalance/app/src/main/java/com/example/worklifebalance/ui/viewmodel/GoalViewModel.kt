@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.worklifebalance.domain.model.Goal
 import com.example.worklifebalance.domain.usecase.goal.DeleteAllGoalsUseCase
 import com.example.worklifebalance.domain.usecase.goal.DeleteGoalUseCase
+import com.example.worklifebalance.domain.usecase.goal.DeleteGoalsByDomainIdUseCase
 import com.example.worklifebalance.domain.usecase.goal.GetAllGoalsUseCase
 import com.example.worklifebalance.domain.usecase.goal.GetGoalByIdUseCase
 import com.example.worklifebalance.domain.usecase.goal.InsertGoalUseCase
@@ -22,7 +23,8 @@ class GoalViewModel @Inject constructor(
     private val insertGoalUseCase: InsertGoalUseCase,
     private val updateGoalUseCase: UpdateGoalUseCase,
     private val deleteGoalUseCase: DeleteGoalUseCase,
-    private val deleteAllGoalsUseCase: DeleteAllGoalsUseCase
+    private val deleteAllGoalsUseCase: DeleteAllGoalsUseCase,
+    private val deleteGoalsByDomainIdUseCase: DeleteGoalsByDomainIdUseCase
 ) : ViewModel() {
     private val _goals = MutableStateFlow<List<Goal>>(emptyList())
     val goals: StateFlow<List<Goal>> = _goals
@@ -119,6 +121,21 @@ class GoalViewModel @Inject constructor(
             } catch (e: Exception) {
                 _error.value = e.message
                 _goalById.value = null
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun deleteGoalsByDomainId(domainId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            try {
+                deleteGoalsByDomainIdUseCase(domainId)
+                loadGoals()
+            } catch (e: Exception) {
+                _error.value = e.message
             } finally {
                 _isLoading.value = false
             }

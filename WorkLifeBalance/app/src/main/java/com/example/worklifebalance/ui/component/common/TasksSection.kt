@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.worklifebalance.domain.model.Domain
@@ -19,6 +20,7 @@ import com.example.worklifebalance.domain.model.TaskExecution
 
 @Composable
 fun TasksSection(
+    modifier: Modifier = Modifier,
     titleTasksSection: String,
     tasks: List<Task>,
     domains: List<Domain>,
@@ -34,7 +36,7 @@ fun TasksSection(
     var updateTask: Task? by remember { mutableStateOf(null) }
     var deleteTask: Task? by remember { mutableStateOf(null) }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -71,6 +73,7 @@ fun TasksSection(
             } else {
                 tasks.forEach { task ->
                     val domainName = domains.find { it.id == task.domainId }?.name ?: "Không xác định"
+                    val domainColor = domains.find { it.id == task.domainId }?.color ?: 0xFF888888UL
                     val isChecked = isTaskCompletedToday(task.id)
                     val executedDates = executions.filter { it.taskId == task.id }.map { it.executionDate }
                     // Chuẩn hóa plannedDates về 0h0p0s0ms
@@ -107,6 +110,7 @@ fun TasksSection(
                     TaskItem(
                         task = task.copy(plannedDates = normalizedPlannedDates),
                         domainName = domainName,
+                        domainColor = Color(domainColor),
                         isChecked = isChecked,
                         onCheckTask = {
                             if (!isChecked) {

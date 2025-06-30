@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.runtime.setValue
@@ -16,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.worklifebalance.domain.utils.getCurrentDate
+import com.example.worklifebalance.ui.component.common.AddTaskDialog
 import com.example.worklifebalance.ui.component.common.TasksSection
 import com.example.worklifebalance.ui.component.goal.GoalAdjustmentDialog
 import com.example.worklifebalance.ui.component.goal.GoalInfo
@@ -50,9 +53,6 @@ fun GoalDetailManagement (
 
     val today = LocalDate.now()
     val todayMillis = today.atStartOfDay(ZoneId.systemDefault()).toEpochSecond() * 1000
-    val filteredTasks = tasks.filter { task ->
-        task.plannedDates.any { dateMillis -> dateMillis == todayMillis }
-    }
     val dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
 
     fun isTaskCompletedToday(taskId: String): Boolean {
@@ -67,6 +67,8 @@ fun GoalDetailManagement (
 
     var showGoalAdjustmentDialog by remember { mutableStateOf(false) }
     var showConfirmDeletingAllTask by remember { mutableStateOf(false) }
+    var showConfirmDeleteGoal by remember { mutableStateOf(false) }
+    var showAddNewTaskPopup by remember { mutableStateOf(false) }
 
     LaunchedEffect(goalId) {
         goalViewModel.getGoalById(goalId)
@@ -105,6 +107,22 @@ fun GoalDetailManagement (
                         )
                     }
                 },
+                actions = {
+                    Button(
+                        onClick = { showAddNewTaskPopup = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        contentPadding = PaddingValues(8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Thêm mới",
+                            modifier = Modifier.size(26.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -130,7 +148,7 @@ fun GoalDetailManagement (
                             goalViewModel.updateGoal(goal)
                         },
                         onDeleteGoal = { goal ->
-                            goalViewModel.deleteGoal(goal)
+                            showConfirmDeleteGoal = true
                         },
                         onViewSuggest = { showGoalAdjustmentDialog = true },
                         tasks = tasksOfGoal,
@@ -149,6 +167,12 @@ fun GoalDetailManagement (
                 )
             }
             item {
+                val filteredTasks = tasksOfGoal.filter { task ->
+                    selectedDate == null || task.plannedDates.any { dateMillis ->
+                        val date = java.time.Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
+                        date == selectedDate
+                    }
+                }
                 TasksSection(
                     titleTasksSection = "Danh sách nhiệm vụ",
                     tasks = filteredTasks,
@@ -166,18 +190,29 @@ fun GoalDetailManagement (
                     onUpdateTask = { task ->
                         taskViewModel.updateTask(task) },
                     onDeleteTask = { task ->
-                        taskViewModel.deleteTask(task) },
+                        taskViewModel.deleteTask(task)
+                    },
                     onViewOrDeleteAll = { showConfirmDeletingAllTask = true },
                     viewOrDeleteAllText = "Xóa tất cả"
                 )
             }
         }
     }
+    if (showAddNewTaskPopup) {
+        AddTaskDialog(
+            domains = domains,
+            goals = goals,
+            onAdd = { task ->
+                taskViewModel.insertTask(task)
+            },
+            onDismiss = { showAddNewTaskPopup = false }
+        )
+    }
     if(showConfirmDeletingAllTask) {
         AlertDialog(
             onDismissRequest = { showConfirmDeletingAllTask = false },
             title = { Text("Xác nhận xóa nhiệm vụ") },
-            text = { Text("Bạn có chắc chắn muốn xóa tất cả nhiệm vụ này không?") },
+            text = { Text("Bạn có chắc chắn muốn xóa tất cả nhiệm vụ của mục tiêu này không?") },
             confirmButton = {
                 Button(onClick = {
                     taskViewModel.deleteAllTasks()
@@ -194,6 +229,26 @@ fun GoalDetailManagement (
         GoalAdjustmentDialog(
             goal = goal,
             onDismiss = { showGoalAdjustmentDialog = false }
+        )
+    }
+    if(showConfirmDeleteGoal) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDeleteGoal = false },
+            title = { Text("Xác nhận xóa mục tiêu") },
+            text = { Text("Bạn có chắc chắn muốn xóa mục tiêu này và tất cả nhiệm vụ liên quan không?") },
+            confirmButton = {
+                Button(onClick = {
+                    goal?.let {
+                        goalViewModel.deleteGoal(it)
+                        taskViewModel.deleteTasksByGoalId(it.id)
+                    }
+                    showConfirmDeleteGoal = false
+                    navController.popBackStack()
+                }) { Text("Xóa") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDeleteGoal = false }) { Text("Hủy") }
+            }
         )
     }
 }

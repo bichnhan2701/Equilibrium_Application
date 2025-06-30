@@ -110,7 +110,7 @@ fun SuggestionPopup(
                 LottieAnimation(
                     composition,
                     progress,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().clip(CircleShape),
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))

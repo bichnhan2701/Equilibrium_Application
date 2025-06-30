@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -16,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.worklifebalance.domain.model.*
 import com.example.worklifebalance.domain.utils.getCurrentDate
 import com.example.worklifebalance.ui.component.common.AddTaskDialog
+import com.example.worklifebalance.ui.component.common.EmptyPlaceholder
 import com.example.worklifebalance.ui.component.common.TasksSection
 import com.example.worklifebalance.ui.component.task.TaskFilterByDateBar
 import com.example.worklifebalance.ui.component.task.TaskFilterByDomainBar
@@ -58,6 +60,7 @@ fun TaskManagement(
     }
     var showAddNewTaskPopup by remember { mutableStateOf(false) }
     var showConfirmDeletingAllTask by remember { mutableStateOf(false) }
+    var goalIdToDeleteTasks by remember { mutableStateOf<String?>(null) }
 
     fun isTaskCompletedToday(taskId: String): Boolean {
         val today = Calendar.getInstance().apply {
@@ -137,21 +140,51 @@ fun TaskManagement(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
+            if (dateFilteredGoals.isEmpty()) {
+                item{
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Danh sách nhiệm vụ",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            EmptyPlaceholder(
+                                title = "Chưa có dữ liệu nhiệm vụ.",
+                                description = "Hãy bắt đầu bằng việc thêm một mà lĩnh vực bạn quan tâm.",
+                            )
+                        }
+                    }
+                }
+            }
             items(dateFilteredGoals.size) { index ->
                 val goal = dateFilteredGoals[index]
                 val tasksOfGoal = tasks.filter { task ->
                     // Lọc theo goalId
                     task.goalId == goal.id &&
-                            // Lọc theo ngày (nếu có)
-                            (selectedLocalDate == null || task.plannedDates.any { execDate ->
-                                val execLocalDate = Instant.ofEpochMilli(execDate).atZone(ZoneId.systemDefault()).toLocalDate()
-                                execLocalDate == selectedLocalDate
-                            }) &&
-                            // Lọc theo domain (nếu có)
-                            (selectedFilter == null || task.domainId == selectedFilter!!.id)
+                        // Lọc theo ngày (nếu có)
+                        (selectedLocalDate == null || task.plannedDates.any { execDate ->
+                            val execLocalDate = Instant.ofEpochMilli(execDate).atZone(ZoneId.systemDefault()).toLocalDate()
+                            execLocalDate == selectedLocalDate
+                        }) &&
+                        // Lọc theo domain (nếu có)
+                        (selectedFilter == null || task.domainId == selectedFilter!!.id)
                 }
                 TasksSection(
-                    titleTasksSection = goal.name,
+                    modifier = Modifier.fillMaxWidth(),
+                    titleTasksSection = "Mục tiêu: ${ goal.name }",
                     tasks = tasksOfGoal,
                     domains = domains,
                     goals = goals,
@@ -170,7 +203,10 @@ fun TaskManagement(
                     onDeleteTask = { task ->
                         taskViewModel.deleteTask(task)
                     },
-                    onViewOrDeleteAll = { showConfirmDeletingAllTask = true },
+                    onViewOrDeleteAll = {
+                        goalIdToDeleteTasks = goal.id
+                        showConfirmDeletingAllTask = true
+                    },
                     viewOrDeleteAllText = "Xóa tất cả",
                 )
                 Divider(modifier = Modifier.padding(16.dp))
@@ -187,19 +223,26 @@ fun TaskManagement(
             }
         }
     }
-    if(showConfirmDeletingAllTask) {
+    if(showConfirmDeletingAllTask && goalIdToDeleteTasks != null) {
         AlertDialog(
-            onDismissRequest = { showConfirmDeletingAllTask = false },
+            onDismissRequest = {
+                showConfirmDeletingAllTask = false
+                goalIdToDeleteTasks = null
+            },
             title = { Text("Xác nhận xóa nhiệm vụ") },
-            text = { Text("Bạn có chắc chắn muốn xóa tất cả nhiệm vụ này không?") },
+            text = { Text("Bạn có chắc chắn muốn xóa tất cả nhiệm vụ của mục tiêu này không?") },
             confirmButton = {
                 Button(onClick = {
-                    taskViewModel.deleteAllTasks()
+                    taskViewModel.deleteTasksByGoalId(goalIdToDeleteTasks!!)
                     showConfirmDeletingAllTask = false
+                    goalIdToDeleteTasks = null
                 }) { Text("Xóa") }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmDeletingAllTask = false }) { Text("Hủy") }
+                TextButton(onClick = {
+                    showConfirmDeletingAllTask = false
+                    goalIdToDeleteTasks = null
+                }) { Text("Hủy") }
             }
         )
     }

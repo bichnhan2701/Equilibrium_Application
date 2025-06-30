@@ -59,11 +59,11 @@ fun Goal.autoGoalType(
     executedDatesMap: Map<String, List<Long>>,
     now: Long = System.currentTimeMillis()
 ): String {
-    val progress = this.progress(tasks, executedDatesMap) * 100
+    val progress = this.progress(tasks, executedDatesMap)
     return when {
         now < this.startDate || progress == 0f -> GoalType.NOT_STARTED.name
-        (now in this.startDate..this.endDate && progress in 1f..99f) -> GoalType.IN_PROGRESS.name
-        now > this.endDate || progress >= 100f -> GoalType.COMPLETED.name
+        (now in this.startDate..this.endDate && progress > 0f && progress < 1f) -> GoalType.IN_PROGRESS.name
+        now > this.endDate || progress >= 1f -> GoalType.COMPLETED.name
         else -> GoalType.NOT_STARTED.name
     }
 }
@@ -73,8 +73,8 @@ fun countCompletedTasks(tasks: List<Task>, executedDatesMap: Map<String, List<Lo
         val goal = goals.find { it.id == task.goalId }
         if (goal != null) {
             val executedDates = executedDatesMap[task.id] ?: emptyList()
-            val weekDays = if (task.taskType == com.example.worklifebalance.domain.model.TaskType.REPEAT.name && task.repeatRule == com.example.worklifebalance.domain.model.TaskRepeatRule.WEEKLY.name) task.plannedDates.map { it.toInt() }.toSet() else emptySet()
-            val monthDays = if (task.taskType == com.example.worklifebalance.domain.model.TaskType.REPEAT.name && task.repeatRule == com.example.worklifebalance.domain.model.TaskRepeatRule.MONTHLY.name) task.plannedDates.map { it.toInt() }.toSet() else emptySet()
+            val weekDays = if (task.taskType == TaskType.REPEAT.name && task.repeatRule == TaskRepeatRule.WEEKLY.name) task.plannedDates.map { it.toInt() }.toSet() else emptySet()
+            val monthDays = if (task.taskType == TaskType.REPEAT.name && task.repeatRule == TaskRepeatRule.MONTHLY.name) task.plannedDates.map { it.toInt() }.toSet() else emptySet()
             task.progress(
                 executedDates = executedDates,
                 goalStartDate = goal.startDate,

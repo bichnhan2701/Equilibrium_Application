@@ -9,4 +9,6 @@ interface TaskRepository {
     suspend fun deleteAllTasks()
     suspend fun getAllTasks(): List<Task>
     suspend fun getTaskById(taskId: String): Task?
+    suspend fun deleteTasksByGoalId(goalId: String)
+    suspend fun deleteTasksByDomainId(domainId: String)
 }

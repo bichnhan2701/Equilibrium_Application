@@ -167,6 +167,31 @@ fun TaskAllocationPieChart(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            val leastFocusedDomain = if (domains.isNotEmpty()) {
+                val domainTaskCounts = domains.associateWith { domain ->
+                    tasks.count { it.domainId == domain.id }
+                }
+                val minCount = domainTaskCounts.values.minOrNull() ?: 0
+                domainTaskCounts.filter { it.value == minCount }.keys.toList()
+            } else emptyList()
+            Spacer(modifier = Modifier.height(16.dp))
+            if (leastFocusedDomain.isNotEmpty()) {
+                val names = leastFocusedDomain.joinToString { it.name }
+                Text(
+                    text = "Bạn ít tập trung vào lĩnh vực: $names. Hãy cân nhắc dành thêm thời gian cho chúng nhé.",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                Text(
+                    text = "Không có lĩnh vực nào để đánh giá",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

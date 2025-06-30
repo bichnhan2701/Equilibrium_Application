@@ -17,7 +17,7 @@ import com.example.worklifebalance.domain.model.Task
 import com.example.worklifebalance.domain.model.autoGoalType
 
 @Composable
-fun ProgressSummaryCard(
+fun GoalSummaryCard(
     goals: List<Goal>,
     tasks: List<Task>,
     executedDatesMap: Map<String, List<Long>>,

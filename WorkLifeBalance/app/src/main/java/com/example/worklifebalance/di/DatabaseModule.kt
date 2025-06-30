@@ -42,4 +42,7 @@ object DatabaseModule {
 
     @Provides
     fun provideRestSessionDao(db: WorkLifeBalanceDatabase): RestSessionDao = db.restSessionDao()
+
+    @Provides
+    fun provideRecoveryActivityDao(db: WorkLifeBalanceDatabase): RecoveryActivityDao = db.recoveryActivityDao()
 }

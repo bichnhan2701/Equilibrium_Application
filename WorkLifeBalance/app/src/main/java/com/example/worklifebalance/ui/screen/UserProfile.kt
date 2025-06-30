@@ -15,6 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +47,8 @@ fun UserProfile(
     val userPhotoUrl = user?.photoUrl
     val userName = user?.displayName ?: "Chưa đăng nhập"
     val userEmail = user?.email ?: ""
+
+    val showSignOutDialog = remember { mutableStateOf(false) }
 
     LaunchedEffect(signOutState) {
         signOutState?.onSuccess {
@@ -155,7 +159,11 @@ fun UserProfile(
                 Spacer(modifier = Modifier.height(32.dp))
                 Button(
                     onClick = {
-                        authViewModel.signOut()
+                        if (user != null) {
+                            showSignOutDialog.value = true
+                        } else {
+                            Toast.makeText(context, "Vui lòng đăng nhập Google từ màn hình đăng nhập!", Toast.LENGTH_SHORT).show()
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -183,6 +191,26 @@ fun UserProfile(
                         Text(text = "Đăng nhập với Google", color = Color.Black, fontSize = 16.sp)
                     }
 
+                }
+                if (showSignOutDialog.value) {
+                    AlertDialog(
+                        onDismissRequest = { showSignOutDialog.value = false },
+                        title = { Text("Xác nhận đăng xuất") },
+                        text = { Text("Bạn có chắc chắn muốn đăng xuất? Tất cả liệu của bạn sẽ bị mất.") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showSignOutDialog.value = false
+                                authViewModel.signOut()
+                            }) {
+                                Text("Đăng xuất", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showSignOutDialog.value = false }) {
+                                Text("Hủy")
+                            }
+                        }
+                    )
                 }
             }
         }

@@ -37,7 +37,7 @@ fun GoalItem(
     goal: Goal,
     domainName: String,
     domainColor: ULong,
-    onViewDetail: (String) -> Unit,
+    onViewDetail: (goalId: String) -> Unit,
     onUpdateGoal: (Goal) -> Unit,
     onDeleteGoal: (Goal) -> Unit,
     tasks: List<Task>,
