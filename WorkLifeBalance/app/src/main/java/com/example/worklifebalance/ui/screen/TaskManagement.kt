@@ -210,18 +210,19 @@ fun TaskManagement(
                     viewOrDeleteAllText = "Xóa tất cả",
                 )
                 Divider(modifier = Modifier.padding(16.dp))
-                if (showAddNewTaskPopup) {
-                    AddTaskDialog(
-                        domains = domains,
-                        goals = goals,
-                        onAdd = { task ->
-                            taskViewModel.insertTask(task)
-                        },
-                        onDismiss = { showAddNewTaskPopup = false }
-                    )
-                }
             }
         }
+    }
+    if (showAddNewTaskPopup) {
+        AddTaskDialog(
+            domains = domains,
+            goals = goals,
+            onAdd = { task ->
+                taskViewModel.insertTask(task)
+                showAddNewTaskPopup = false
+            },
+            onDismiss = { showAddNewTaskPopup = false }
+        )
     }
     if(showConfirmDeletingAllTask && goalIdToDeleteTasks != null) {
         AlertDialog(

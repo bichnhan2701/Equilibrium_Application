@@ -18,7 +18,7 @@ import com.example.worklifebalance.data.local.entity.*
         RestSessionEntity::class,
         RecoveryActivityEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(ListLongConverter::class, ULongConverter::class)

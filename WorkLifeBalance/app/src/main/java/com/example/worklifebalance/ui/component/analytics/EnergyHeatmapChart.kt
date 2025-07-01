@@ -86,18 +86,22 @@ fun EnergyHeatmapChart(
             }
 
             // Heatmap grid
+            val firstDayOfWeek = startOfMonth.dayOfWeek.value % 7 // 0=Sunday, 1=Monday, ..., 6=Saturday
+            val daysInMonth = today.lengthOfMonth()
+            val totalCells = ceil((firstDayOfWeek + daysInMonth) / 7.0).toInt() * 7
+            var dayCounter = 1
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                for (weekIndex in 0 until weeksToShow) {
+                for (cellIndex in 0 until totalCells step 7) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 2.dp)
                     ) {
                         for (dayOfWeek in 0..6) {
-                            val cellDate = startDate.plusDays((weekIndex * 7 + dayOfWeek).toLong())
-                            if (cellDate.isBefore(startDate) || cellDate.isAfter(endDate)) {
+                            val gridIndex = cellIndex + dayOfWeek
+                            if (gridIndex < firstDayOfWeek || dayCounter > daysInMonth) {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -105,6 +109,7 @@ fun EnergyHeatmapChart(
                                         .padding(2.dp)
                                 )
                             } else {
+                                val cellDate = startOfMonth.plusDays((dayCounter - 1).toLong())
                                 val energyLevel = (energyData[cellDate] ?: -1).toFloat()
                                 val color = when {
                                     energyLevel == -1f -> Color.LightGray.copy(alpha = 0.5f)
@@ -113,29 +118,22 @@ fun EnergyHeatmapChart(
                                     energyLevel in 71f..100f -> Green.copy(alpha = 0.2f + (energyLevel / 100f) * 0.8f)
                                     else -> Color.LightGray.copy(alpha = 0.5f)
                                 }
-
                                 Box(
+                                    contentAlignment = Alignment.Center,
                                     modifier = Modifier
                                         .weight(1f)
                                         .aspectRatio(1f)
                                         .padding(2.dp)
-                                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
-                                        .background(color)
-                                        .border(
-                                            width = if (cellDate == today) 2.dp else 0.dp,
-                                            color = if (cellDate == today) Color.DarkGray else Color.Transparent,
-                                            shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                                                4.dp
-                                            )
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                        .background(color, shape = MaterialTheme.shapes.small)
                                 ) {
                                     Text(
-                                        text = cellDate.dayOfMonth.toString(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.DarkGray
+                                        text = dayCounter.toString(),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center
                                     )
                                 }
+                                dayCounter++
                             }
                         }
                     }

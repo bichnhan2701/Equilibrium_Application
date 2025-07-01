@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class RecoveryActivityEntity(
     @PrimaryKey val id: String,
     val name: String,
-    val description: String?,
+    val description: String = "",
     val durationInMinutes: Int,
     val colorHex: ULong // Store color as hex value
 )

@@ -158,7 +158,7 @@ fun RecoveryActivityDetailCard(
                 Spacer(modifier = Modifier.height(16.dp))
                 // Description
                 Text(
-                    text = activity.description.toString(),
+                    text = activity.description,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = Color.DarkGray

@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 data class RecoveryActivity(
     val id: String,
     val name: String,
-    val description: String? = "",
+    val description: String = "",
     val durationInMinutes: Int,
     val color: Color,
 )

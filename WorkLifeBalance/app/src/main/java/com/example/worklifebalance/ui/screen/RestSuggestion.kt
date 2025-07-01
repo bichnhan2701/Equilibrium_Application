@@ -84,7 +84,7 @@ fun RestSuggestion(
     }
 
     val restHistory by restSessionViewModel.restHistory.collectAsState()
-    val currentEnergy = energyViewModel.latestEnergy.collectAsState().value?.energy ?: 75
+    val currentEnergy = energyViewModel.latestEnergy.collectAsState().value
     val userRecoveryActivities = recoveryActivityViewModel.recoveryActivities.collectAsState().value
     val recoveryActivities = sampleRecoveryActivities
     var selectedActivity by remember { mutableStateOf<RecoveryActivity?>(null) }
@@ -182,7 +182,7 @@ fun RestSuggestion(
                 TimeSessionInfoCard(
                     currentRestTime = totalRestToday,
                     lastRestTime = lastRestDisplay,
-                    currentEnergy = currentEnergy
+                    currentEnergy = currentEnergy?.energy ?: 0
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }

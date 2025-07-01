@@ -35,12 +35,15 @@ import com.example.worklifebalance.ui.component.common.GoalsSection
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.launch
 import com.example.worklifebalance.R
+import com.example.worklifebalance.domain.model.TaskDifficulty
 import com.example.worklifebalance.domain.model.autoGoalType
 import com.example.worklifebalance.domain.model.progress
 import com.example.worklifebalance.ui.component.common.AddDomainDialog
+import com.example.worklifebalance.ui.component.common.AddTaskDialog
 import com.example.worklifebalance.ui.component.common.AddGoalDialog
 import com.example.worklifebalance.ui.component.common.EmptyPlaceholder
 import com.example.worklifebalance.ui.component.restsuggestion.ReminderToast
+import com.example.worklifebalance.ui.component.task.TaskFilterByDifficultyBar
 import kotlinx.coroutines.delay
 
 @OptIn(DelicateCoroutinesApi::class)
@@ -67,6 +70,7 @@ fun Dashboard(
     var showAddNewGoalPopup by remember { mutableStateOf(false) }
     var showAddNewDomainPopup by remember { mutableStateOf(false) }
     var showSuggestionPopup by remember { mutableStateOf(false) }
+    var showAddNewTaskPopup by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var showReminderToast by remember { mutableStateOf(false) }
     var reminderTimesReloadKey by remember { mutableIntStateOf(0) }
@@ -225,6 +229,16 @@ fun Dashboard(
         filtered
     }
 
+    // State for difficulty filter
+    var selectedDifficulty by remember { mutableStateOf<TaskDifficulty?>(null) }
+    // Filter tasks by selected difficulty
+    val filteredTodayTasks = remember(todayTasks, selectedDifficulty) {
+        if (selectedDifficulty == null) todayTasks
+        else todayTasks.filter { task ->
+            TaskDifficulty.fromString(task.difficulty) == selectedDifficulty
+        }
+    }
+
     Scaffold (
         topBar = {
             DashboardHeader(
@@ -326,7 +340,7 @@ fun Dashboard(
                                 )
                             } else {
                                 EmptyCard(
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.weight(1f).height(150.dp),
                                     title = "Năng lượng",
                                     message = "Bạn chưa cập nhật năng lượng.",
                                     onEdit = { showDialog = true }
@@ -352,9 +366,16 @@ fun Dashboard(
             }
             if (todayTasks.isNotEmpty()) {
                 item {
+                    // Task difficulty filter bar
+                    TaskFilterByDifficultyBar(
+                        selectedFilter = selectedDifficulty,
+                        onFilterSelected = { selectedDifficulty = it }
+                    )
+                }
+                item {
                     TasksSection(
                         titleTasksSection = "Nhiệm vụ hôm nay",
-                        tasks = todayTasks,
+                        tasks = filteredTodayTasks,
                         domains = domains,
                         goals = goals,
                         executions = executions,
@@ -566,7 +587,10 @@ fun Dashboard(
                 showAddNewPopup = false
                 showAddNewGoalPopup = true
             },
-            onAddTask = { showAddNewPopup = false  }
+            onAddTask = {
+                showAddNewPopup = false
+                showAddNewTaskPopup = true
+            }
         )
     }
     if (showAddNewGoalPopup) {
@@ -586,6 +610,17 @@ fun Dashboard(
                 showAddNewDomainPopup = false
             },
             onDismiss = { showAddNewDomainPopup = false }
+        )
+    }
+    if (showAddNewTaskPopup) {
+        AddTaskDialog(
+            domains = domains,
+            goals= goals,
+            onAdd = { task ->
+                taskViewModel.insertTask(task)
+                showAddNewTaskPopup = false
+            },
+            onDismiss = { showAddNewTaskPopup = false }
         )
     }
     // Reminder Toast theo khung giờ tùy chỉnh
